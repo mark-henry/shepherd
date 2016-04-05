@@ -26,7 +26,7 @@ function create() {
   player.addChild(
       game.add.graphics()
         .beginFill(0x0000FF, 1)
-        .drawRect(0,0, 10, 20)
+        .drawRect(-5, 0, 10, -20)
         .endFill());
   player.body.collideWorldBounds = true;
 
@@ -34,8 +34,10 @@ function create() {
 }
 
 function Sheep() {
-  var sheep = game.add.sprite(Math.random() * 200, Math.random() * 200);
+  var sheep = game.add.sprite(50 + (sheep_list.length % 10) * 12, 50 + (sheep_list.length * 12) / 10);
   game.physics.enable(sheep);
+  sheep.body.collideWorldBounds = true;
+
   sheep.addChild(
     game.add.graphics()
       .beginFill(0xFFFFFF, 1)
@@ -54,20 +56,31 @@ function Sheep() {
 function update() {
   playerMovement();
   flockSheep();
+  // game.physics.arcade.collide(sheep_list, sheep_list);
 }
 
-var sepDist = 100,
-  sepForce = 1,
-  alignDist = 180,
-  alignForce = 0.25,
-  cohesDist = 250,
-  cohesForce = 0.15;
+var sepDist = 360,
+  sepForce = 10,
+  alignDist = 350,
+  alignForce = 5,
+  cohesForce = 5;
 function flockSheep() {
   sheep_list.forEach(function(thisSheep) {
     var diffX, diffY, distSquared, magnitude;
     var sepForceX = 0, sepForceY = 0;
     var cohesForceX = 0, cohesForceY = 0;
     var alignForceX = 0, alignForceY = 0;
+
+    // Be herded by the player
+    diffX = player.body.position.x - thisSheep.body.position.x;
+    diffY = player.body.position.y - thisSheep.body.position.y;
+    distSquared = (diffX * diffX) + (diffY * diffY);
+    if (distSquared < sepDist*32) {
+      sepForceX += diffX;
+      sepForceY += diffY;
+    }
+
+    // React to other sheep
     sheep_list.forEach(function(thatSheep) {
       if (thisSheep === thatSheep) { return; }
       diffX = thatSheep.body.position.x - thisSheep.body.position.x;;
@@ -78,16 +91,17 @@ function flockSheep() {
         sepForceX += diffX;
         sepForceY += diffY;
       } else {
-        if (distSquared < cohesDist) {
-          cohesForceX += diffX;
-          cohesForceY += diffY;
-        }
+        cohesForceX += diffX;
+        cohesForceY += diffY;
         if (distSquared < alignDist) {
           alignForceX += thatSheep.body.velocity.x;
           alignForceY += thatSheep.body.velocity.y;
         }
       }
     });
+
+    thisSheep.body.acceleration.x = 0;
+    thisSheep.body.acceleration.y = 0;
 
     magnitude = hypot(sepForceX, sepForceY);
     thisSheep.body.acceleration.x -= (sepForce * sepForceX / magnitude) || 0;
@@ -102,12 +116,13 @@ function flockSheep() {
     thisSheep.body.acceleration.y += (alignForce * alignForceY / magnitude) || 0;
   });
 
-  var speedLimit = 4, speedLimitRoot = 2;
+  var speedLimitRoot = 20;
   sheep_list.forEach(function(thisSheep) {
     // Normalize speed to speed limit if necessary
     var distSquared = thisSheep.body.velocity.x*thisSheep.body.velocity.x + thisSheep.body.velocity.y*thisSheep.body.velocity.y;
-    if (distSquared > speedLimit) {
+    if (distSquared > speedLimitRoot*speedLimitRoot) {
       var normalFactor = speedLimitRoot / hypot(thisSheep.body.velocity.x, thisSheep.body.velocity.y);
+      // normalFactor *= .9;  // Put drag on sheep's movement
       thisSheep.body.velocity.x *= normalFactor;
       thisSheep.body.velocity.y *= normalFactor;
     }
@@ -128,10 +143,10 @@ function playerMovement() {
     player.body.velocity.x = 0;
     player.body.velocity.y = 0;
 
-    if (cursors.left.isDown) { player.body.velocity.x = -150; }
-    if (cursors.right.isDown) { player.body.velocity.x = 150; }
-    if (cursors.up.isDown) { player.body.velocity.y = -150; }
-    if (cursors.down.isDown) { player.body.velocity.y = 150; }
+    if (cursors.left.isDown) { player.body.velocity.x = -100; }
+    if (cursors.right.isDown) { player.body.velocity.x = 100; }
+    if (cursors.up.isDown) { player.body.velocity.y = -100; }
+    if (cursors.down.isDown) { player.body.velocity.y = 100; }
 }
 
 }());
